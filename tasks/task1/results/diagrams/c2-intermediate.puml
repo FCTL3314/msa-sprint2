@@ -1,0 +1,39 @@
+@startuml c2-intermediate
+!include <C4/C4_Container>
+
+title C2. Hotelio через два месяца: вынесено бронирование
+
+Person(user, "Пользователь", "Ищет отели, бронирует, смотрит свои брони")
+Person(analyst, "Аналитик", "Смотрит статистику бронирований")
+
+Container(front, "Веб и мобильное приложение", "Фронтенд")
+Container(graphql, "GraphQL-шлюз и подграфы", "Apollo Federation", "Личный кабинет. Подграфы бронирований, отелей и промокодов")
+
+System_Boundary(legacy, "Монолит, не дорабатывается") {
+  Container(monolith, "Монолит Hotelio", "Spring Boot", "Пользователи, отели, отзывы, промокоды, старый список броней. Создание брони передаёт новому сервису")
+  ContainerDb(monolith_db, "БД монолита", "PostgreSQL")
+}
+
+System_Boundary(k8s, "Kubernetes и Istio") {
+  Container(booking, "Сервис бронирований", "gRPC", "Проверки, расчёт цены, сохранение брони")
+}
+ContainerDb(booking_db, "БД бронирований", "PostgreSQL", "Отдельная база, первая отделённая от монолита")
+ContainerQueue(kafka, "Kafka", "", "События о бронях")
+Container(history, "Сервис истории и статистики", "", "Собирает статистику по пользователям, отелям, дням")
+ContainerDb(history_db, "БД истории", "PostgreSQL")
+
+Rel(user, front, "Пользуется")
+Rel(front, monolith, "Поиск отелей, отзывы, создание брони", "REST")
+Rel(front, graphql, "Брони с отелями и скидками одним запросом", "GraphQL")
+Rel(graphql, booking, "Брони пользователя", "gRPC")
+Rel(graphql, monolith, "Отели, промокоды", "REST")
+BiRel(monolith, booking, "Монолит передаёт создание брони (gRPC), сервис берёт у монолита данные для проверок (REST)")
+Rel(monolith, monolith_db, "Чтение и запись", "SQL")
+Rel(booking, booking_db, "Чтение и запись", "SQL")
+Rel(booking, kafka, "BookingCreated")
+Rel(kafka, history, "BookingCreated")
+Rel(history, history_db, "История и статистика", "SQL")
+Rel(analyst, history_db, "Статистика", "SQL")
+
+SHOW_LEGEND()
+@enduml

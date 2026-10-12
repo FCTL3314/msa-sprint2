@@ -1,0 +1,41 @@
+@startuml c2-target
+!include <C4/C4_Container>
+
+title C2. Hotelio через год: монолита нет
+
+Person(user, "Пользователь")
+Person(analyst, "Аналитик")
+System_Ext(partners, "Партнёрские каналы", "Внешние площадки бронирования")
+
+Container(front, "Веб и мобильное приложение", "Фронтенд")
+Container(gateway, "API Gateway", "", "Единая точка входа, проверка пользователя")
+Container(graphql, "GraphQL-шлюз", "Apollo Federation", "API для фронтенда")
+
+System_Boundary(k8s, "Kubernetes и Istio: постепенная выкладка, метрики и трассировка у каждого сервиса") {
+  Container(booking, "Сервис бронирований", "", "Своя БД")
+  Container(users, "Сервис пользователей", "", "Своя БД")
+  Container(hotels, "Сервис отелей", "", "Своя БД")
+  Container(reviews, "Сервис отзывов", "", "Своя БД")
+  Container(promos, "Сервис промокодов", "", "Своя БД")
+  Container(history, "Сервис истории и статистики", "", "Своя БД")
+}
+ContainerQueue(kafka, "Kafka", "", "События между сервисами")
+
+Rel(user, front, "Пользуется")
+Rel(front, gateway, "Запросы", "HTTPS")
+Rel(partners, gateway, "Бронирование", "REST")
+Rel(gateway, graphql, "Запросы фронтенда", "GraphQL")
+Rel(gateway, booking, "Брони партнёров", "REST")
+Rel(graphql, booking, "Брони", "gRPC")
+Rel(graphql, hotels, "Отели", "gRPC")
+Rel(graphql, promos, "Скидки", "gRPC")
+Rel(booking, users, "Статус пользователя", "gRPC")
+Rel(booking, hotels, "Работает ли отель, есть ли места", "gRPC")
+Rel(booking, reviews, "Доверие к отелю", "gRPC")
+Rel(booking, promos, "Проверка промокода", "gRPC")
+Rel(booking, kafka, "BookingCreated")
+Rel(kafka, history, "События о бронях")
+Rel(analyst, history, "Статистика")
+
+SHOW_LEGEND()
+@enduml
