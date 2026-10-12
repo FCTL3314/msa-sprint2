@@ -1,0 +1,38 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: booking-feature-flag
+  namespace: istio-system
+spec:
+  priority: 10
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            inlineCode: |
+              function envoy_on_request(request_handle)
+                local headers = request_handle:headers()
+                local flag = string.lower(headers:get("x-feature-enabled") or "")
+                if flag == "true" or flag == "1" or flag == "on" then
+                  headers:replace("x-booking-version", "v2")
+                else
+                  headers:remove("x-booking-version")
+                end
+                -- заголовки поменялись, маршрут надо выбрать заново
+                request_handle:clearRouteCache()
+              end

@@ -1,0 +1,4 @@
+$ URL=http://localhost:19090 ./check-canary.sh
+▶️ Checking canary release (90% v1, 10% v2)...
+  89 pong v1
+  11 pong v2
