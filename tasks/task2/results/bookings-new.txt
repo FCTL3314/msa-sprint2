@@ -1,0 +1,10 @@
+Брони после прогона test/regress.sh
+
+== Новая система: база booking-service (booking-db), таблица booking
+$ docker exec booking-db psql -U booking -d booking -c 'select * from booking order by id'
+ id |   user_id   |   hotel_id   | promo_code | discount_percent | price |          created_at           
+----+-------------+--------------+------------+------------------+-------+-------------------------------
+  1 | test-user-3 | test-hotel-1 |            |                0 |    80 | 2026-10-12 09:13:47.061411+00
+  2 | test-user-2 | test-hotel-1 | TESTCODE1  |               10 |    90 | 2026-10-12 09:13:47.11402+00
+(2 rows)
+

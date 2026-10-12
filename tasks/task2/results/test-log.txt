@@ -1,0 +1,123 @@
+Задание 2: booking-service и booking-history-service
+Дата: 12.10.2026 12:14
+Запуск: tasks/task2, docker compose up -d --build
+
+== Монолит видит прокси (BOOKING_SERVICE_EXTERNAL_HOST=booking-service)
+➡️  BookingService beans:
+    - bookingService: class com.hotelio.monolith.service.BookingService
+    - grpcBookingService: class com.hotelio.GrpcBookingService
+
+== Регрессионный тест test/regress.sh
+$ docker run --rm --network hotelio-net -e DB_HOST=hotelio-db ... -e API_URL=http://hotelio-monolith:8080 \
+    -e BOOKING_SERVICE_HOST=booking-service -e BOOKING_DB_HOST=booking-db ... -e HISTORY_DB_HOST=booking-history-db ... hotelio-tester
+🏁 Регрессионный тест Hotelio
+🧪 Проверка подключения к БД...
+🧪 Загрузка фикстур...
+DELETE 4
+DELETE 3
+DELETE 12
+DELETE 3
+DELETE 2
+INSERT 0 4
+INSERT 0 3
+INSERT 0 12
+INSERT 0 3
+INSERT 0 2
+🧪 Очистка базы booking-service...
+DO
+🧪 Очистка истории booking-history-service...
+DO
+🧪 Выполнение HTTP-тестов...
+
+Тесты пользователей...
+✅ Получение test-user-1 по ID работает
+✅ Статус test-user-1: ACTIVE
+✅ test-user-1 в блэклисте
+✅ test-user-1 активен
+✅ test-user-1 не авторизован (в блэклисте)
+✅ test-user-3 — VIP-пользователь
+✅ test-user-2 авторизован
+
+Тесты отелей...
+✅ test-hotel-1 получен по ID
+✅ test-hotel-1 работает
+✅ test-hotel-3 не работает
+✅ test-hotel-2 полностью забронирован
+✅ Поиск отелей в Сеуле работает
+✅ Топ-отели в Сеуле загружены
+
+Тесты ревью...
+✅ Отзывы test-hotel-1 найдены
+✅ test-hotel-1 признан надёжным
+✅ test-hotel-3 НЕ признан надёжным (ожидаемо)
+
+Тесты промокодов...
+✅ Промокод TESTCODE1 найден
+✅ VIP-промо доступен VIP
+✅ VIP-промо недоступен обычному
+✅ Обычный промо доступен
+✅ Истекший промо недоступен
+✅ POST /validate промо прошёл
+
+Тесты бронирования...
+✅ booking-service доступен
+✅ Все бронирования получены
+✅ Бронирования test-user-2 найдены
+✅ Бронирование прошло (без промо)
+✅ Бронирование с промо прошло
+✅ Отклонено: неактивный пользователь
+✅ Отклонено: недоверенный отель
+✅ Отклонено: отель полностью забронирован
+
+Тесты booking-service...
+✅ Две новые брони сохранены в базе booking-service
+✅ Цены совпадают с монолитом (test-user-3=80,test-user-2=90)
+✅ Список броней в монолите работает как раньше, по его базе
+
+Тесты booking-history-service...
+✅ События BookingCreated попали в историю (2)
+✅ Статистика по отелям посчитана
+✅ Все HTTP-тесты пройдены!
+
+== Тестовые запросы через монолит
+$ curl -X POST 'http://localhost:8084/api/bookings?userId=test-user-3&hotelId=test-hotel-1&promoCode=TESTCODE1'
+{"id":3,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":70.0,"createdAt":"2026-10-12T09:14:01.787425Z"}
+[HTTP 200]
+Бронь создана в booking-service: дата заполнена, id из его базы, цена посчитана как в монолите.
+$ curl -X POST 'http://localhost:8084/api/bookings?userId=test-user-1&hotelId=test-hotel-1'   # пользователь в чёрном списке
+[HTTP 500]
+$ curl 'http://localhost:8084/api/bookings?userId=test-user-3'   # список по-прежнему из базы монолита
+[{"id":4,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":null,"discountPercent":0.0,"price":80.0,"createdAt":"2026-10-12T09:13:46.649931Z"}]
+[HTTP 200]
+
+== Лог booking-service
+2026-10-12 09:13:47,210 INFO app.service: Booking rejected: Hotel is not operational
+2026-10-12 09:13:47,223 INFO app.service: CreateBooking: user=test-user-2 hotel=test-hotel-2 promo=None
+2026-10-12 09:13:47,226 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-2/active "HTTP/1.1 200 "
+2026-10-12 09:13:47,233 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-2/blacklisted "HTTP/1.1 200 "
+2026-10-12 09:13:47,237 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/hotels/test-hotel-2/operational "HTTP/1.1 200 "
+2026-10-12 09:13:47,242 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/reviews/hotel/test-hotel-2/trusted "HTTP/1.1 200 "
+2026-10-12 09:13:47,245 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/hotels/test-hotel-2/fully-booked "HTTP/1.1 200 "
+2026-10-12 09:13:47,245 INFO app.service: Booking rejected: Hotel is not trusted based on reviews
+2026-10-12 09:14:01,757 INFO app.service: CreateBooking: user=test-user-3 hotel=test-hotel-1 promo=TESTCODE1
+2026-10-12 09:14:01,764 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-3/active "HTTP/1.1 200 "
+2026-10-12 09:14:01,767 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-3/blacklisted "HTTP/1.1 200 "
+2026-10-12 09:14:01,771 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/hotels/test-hotel-1/operational "HTTP/1.1 200 "
+2026-10-12 09:14:01,775 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/reviews/hotel/test-hotel-1/trusted "HTTP/1.1 200 "
+2026-10-12 09:14:01,779 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/hotels/test-hotel-1/fully-booked "HTTP/1.1 200 "
+2026-10-12 09:14:01,784 INFO httpx: HTTP Request: POST http://hotelio-monolith:8080/api/promos/validate?code=TESTCODE1&userId=test-user-3 "HTTP/1.1 200 "
+2026-10-12 09:14:01,787 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-3/status "HTTP/1.1 200 "
+2026-10-12 09:14:01,789 INFO app.service: Booking 3 saved: price=70.0 discount=10.0
+2026-10-12 09:14:01,791 INFO app.events: BookingCreated sent: booking 3, partition 0
+2026-10-12 09:14:01,810 INFO app.service: CreateBooking: user=test-user-1 hotel=test-hotel-1 promo=None
+2026-10-12 09:14:01,813 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-1/active "HTTP/1.1 200 "
+2026-10-12 09:14:01,816 INFO httpx: HTTP Request: GET http://hotelio-monolith:8080/api/users/test-user-1/blacklisted "HTTP/1.1 200 "
+2026-10-12 09:14:01,816 INFO app.service: Booking rejected: User is blacklisted
+
+== Лог booking-history-service
+2026-10-12 09:13:15,121 INFO booking-history-service: History saved: booking 1, user test-user-3, hotel test-hotel-1
+2026-10-12 09:13:15,125 INFO booking-history-service: History saved: booking 2, user test-user-2, hotel test-hotel-1
+2026-10-12 09:13:25,740 INFO booking-history-service: History saved: booking 3, user test-user-3, hotel test-hotel-1
+2026-10-12 09:13:47,076 INFO booking-history-service: History saved: booking 1, user test-user-3, hotel test-hotel-1
+2026-10-12 09:13:47,128 INFO booking-history-service: History saved: booking 2, user test-user-2, hotel test-hotel-1
+2026-10-12 09:14:01,795 INFO booking-history-service: History saved: booking 3, user test-user-3, hotel test-hotel-1
