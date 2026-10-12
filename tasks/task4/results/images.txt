@@ -1,0 +1,7 @@
+$ docker image ls | grep -E 'REPOSITORY|^booking'
+REPOSITORY                                                  TAG                            IMAGE ID       SIZE
+booking-service                                             d5fe6a24                       3c346bd5b591   395MB
+booking-history-service                                     d5fe6a24                       99fefd7dbe52   322MB
+
+$ minikube image list | grep booking
+docker.io/library/booking-service:d5fe6a24

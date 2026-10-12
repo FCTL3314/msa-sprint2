@@ -1,23 +1,48 @@
 stages:
   - build
+  - unit
   - test
   - deploy
+  - tag
 
 variables:
-  IMAGE_TAG: latest
   IMAGE_NAME: booking-service
+  HISTORY_IMAGE_NAME: booking-history-service
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+  VALUES_FILE: helm/booking-service/values-staging.yaml
 
 build:
   stage: build
   script:
+    - docker build -t "$IMAGE_NAME:$IMAGE_TAG" booking-service
+    - docker build -t "$HISTORY_IMAGE_NAME:$IMAGE_TAG" booking-history-service
 
+unit:
+  stage: unit
+  script:
+    - cd booking-service
+    - uv run pytest -v
 
 test:
   stage: test
   script:
-
+    - docker run -d --name booking-service-ci -p 18080:8080 "$IMAGE_NAME:$IMAGE_TAG"
+    - for i in $(seq 1 20); do curl -sf http://localhost:18080/ping >/dev/null && break; sleep 1; done
+    - curl -sf http://localhost:18080/ping | grep pong
+    - curl -sf http://localhost:18080/ready | grep ready
+  after_script:
+    - docker rm -f booking-service-ci
 
 deploy:
   stage: deploy
   script:
- 
+    # в бою этой строки нет, образ берётся из реестра
+    - minikube image load "$IMAGE_NAME:$IMAGE_TAG"
+    - helm upgrade --install booking-service helm/booking-service -f "$VALUES_FILE" --set image.tag="$IMAGE_TAG" --wait --timeout 120s
+    - kubectl get pods -l app=booking-service
+
+tag:
+  stage: tag
+  script:
+    - git tag "release-$(date +%Y%m%d-%H%M%S)"
+    - git tag --list 'release-*' | tail -1

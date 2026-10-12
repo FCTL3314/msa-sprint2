@@ -1,0 +1,8 @@
+$ kubectl get pods
+NAME                              READY   STATUS    RESTARTS   AGE
+booking-service-bcf995b48-br4sc   1/1     Running   0          16s
+
+$ kubectl get services
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+booking-service   ClusterIP   10.102.65.222   <none>        80/TCP    6m14s
+kubernetes        ClusterIP   10.96.0.1       <none>        443/TCP   6m59s

@@ -1,25 +1,18 @@
-# Используем официальный минимальный образ Go
-FROM golang:1.21-alpine
+FROM python:3.12-slim
 
-# TODO: Добавить необходимые пакеты (например, curl)
-# Ожидаемый код:
-RUN apk add --no-cache curl
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 
-# Устанавливаем рабочую директорию
 WORKDIR /app
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
-# Копируем Go-файл и скрипт проверки DNS
-COPY main.go .
-COPY check-dns.sh .
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-# TODO: Сделать скрипт исполняемым
-# Ожидаемый код:
-RUN chmod +x check-dns.sh
+COPY booking.proto ./
+RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. booking.proto
 
-# TODO: Собрать бинарник из main.go
-# Ожидаемый код:
-RUN go build -o booking-service main.go
+COPY app ./app
 
-# TODO: Задать команду запуска
-# Ожидаемый код:
-CMD ["./booking-service"]
+EXPOSE 8080 9090
+CMD ["python", "-m", "app.main"]
