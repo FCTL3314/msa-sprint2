@@ -1,0 +1,4 @@
+Enabling inline tracing for this subgraph. To disable, use ApolloServerPluginInlineTraceDisabled.
+Booking subgraph ready at http://localhost:4001/
+ALLOW bookingsByUser(userId=test-user-3) caller=test-user-3: 2 bookings via gRPC
+DENY bookingsByUser(userId=test-user-3) caller=test-user-2
