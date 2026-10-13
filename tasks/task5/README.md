@@ -1,26 +1,15 @@
-# booking-service с Istio в Minikube
+# booking-service с Istio
 
-Копия задания 4, сервис тот же. Отличия: две версии сервиса (v1 и v2) и манифесты Istio в `istio/`.
-
-## Istio
+Копия задания 4 плюс две версии сервиса и манифесты в `istio/`.
 
 ```bash
 istioctl install --set profile=demo -y
 kubectl label namespace default istio-injection=enabled --overwrite
-```
-
-## Развёртывание
-
-```bash
-cd tasks/task5
 gitlab-ci-local build unit test deploy
 ```
 
-`deploy` ставит два релиза одного чарта (`values-v1.yaml`, `values-v2.yaml`) и применяет `kubectl apply -f istio/`.
-Если в кластере стоит релиз `booking-service` из задания 4, его надо удалить: Service `booking-service` теперь
-создаёт релиз v1.
-
-## Проверка
+`deploy` ставит релизы `booking-service-v1` и `booking-service-v2` и применяет `istio/`. Релиз `booking-service` из
+задания 4 перед этим удалить, Service теперь создаёт v1.
 
 ```bash
 kubectl -n istio-system port-forward svc/istio-ingressgateway 9090:80
@@ -30,4 +19,4 @@ kubectl -n istio-system port-forward svc/istio-ingressgateway 9090:80
 ./check-fallback.sh
 ```
 
-Если порт 9090 занят, port-forward на другой порт и `URL=http://localhost:19090 ./check-canary.sh` и так далее.
+Если 9090 занят: `URL=http://localhost:<порт> ./check-canary.sh` и так далее.
