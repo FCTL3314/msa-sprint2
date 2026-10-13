@@ -13,11 +13,29 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+      annotations:
+        # тег образа не меняется, без аннотации helm upgrade не перезапустит поды
+        rollme: {{ randAlphaNum 5 | quote }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
-          imagePullPolicy: Never
-
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.service.targetPort }}
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+            - name: grpc
+              containerPort: 9090
+          env:
+            - name: ENABLE_FEATURE_X
+              value: {{ .Values.ENABLE_FEATURE_X | quote }}
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

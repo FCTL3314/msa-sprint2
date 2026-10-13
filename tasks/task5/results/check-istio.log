@@ -1,0 +1,8 @@
+$ URL=http://localhost:19090 ./check-istio.sh
+▶️ Проверка установки Istio...
+NAME                                   READY   STATUS    RESTARTS   AGE
+istio-egressgateway-84db5b59fb-px558   1/1     Running   0          4m5s
+istio-ingressgateway-888fb9cd4-4tmwc   1/1     Running   0          4m5s
+istiod-656478fcd9-pzxws                1/1     Running   0          4m19s
+▶️ Проверка Istio инъекции в default namespace...
+"enabled"

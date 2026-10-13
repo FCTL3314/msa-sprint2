@@ -1,0 +1,7 @@
+$ URL=http://localhost:19090 ./check-feature-flag.sh
+▶️ Проверка Feature Flag (X-Feature-Enabled: true)...
+  10 pong v2, feature X
+▶️ Тот же флаг в другом регистре и служебный заголовок от клиента (должен игнорироваться)...
+pong v2, feature X
+  18 pong v1
+   2 pong v2

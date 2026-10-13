@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "🏁 Регрессионный тест до миграции Hotelio"
+echo "🏁 Регрессионный тест Hotelio"
 
 # Проверка соединения
 echo "🧪 Проверка подключения к БД..."
@@ -11,6 +11,23 @@ timeout 2 bash -c "</dev/tcp/${DB_HOST}/${DB_PORT}" \
 # Загрузка фикстур
 echo "🧪 Загрузка фикстур..."
 PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" "${DB_NAME}" < init-fixtures.sql
+
+psql_booking() {
+  PGPASSWORD="${BOOKING_DB_PASSWORD}" psql -h "${BOOKING_DB_HOST}" -p "${BOOKING_DB_PORT:-5432}" -U "${BOOKING_DB_USER}" "${BOOKING_DB_NAME}" "$@"
+}
+psql_history() {
+  PGPASSWORD="${HISTORY_DB_PASSWORD}" psql -h "${HISTORY_DB_HOST}" -p "${HISTORY_DB_PORT:-5432}" -U "${HISTORY_DB_USER}" "${HISTORY_DB_NAME}" "$@"
+}
+truncate_if_exists() { echo "DO \$\$ BEGIN IF to_regclass('$1') IS NOT NULL THEN TRUNCATE $1 RESTART IDENTITY; END IF; END \$\$;"; }
+
+if [[ -n "${BOOKING_DB_HOST:-}" ]]; then
+  echo "🧪 Очистка базы booking-service..."
+  psql_booking -c "$(truncate_if_exists booking)"
+fi
+if [[ -n "${HISTORY_DB_HOST:-}" ]]; then
+  echo "🧪 Очистка истории booking-history-service..."
+  psql_history -c "$(truncate_if_exists booking_history)"
+fi
 
 echo "🧪 Выполнение HTTP-тестов..."
 
@@ -100,6 +117,15 @@ curl -sSf -X POST "${BASE}/api/promos/validate?code=TESTCODE1&userId=test-user-2
 echo ""
 echo "Тесты бронирования..."
 
+if [[ -n "${BOOKING_SERVICE_HOST:-}" ]]; then
+  for i in $(seq 1 30); do
+    timeout 1 bash -c "</dev/tcp/${BOOKING_SERVICE_HOST}/${BOOKING_SERVICE_PORT:-9090}" 2>/dev/null && break
+    [[ "$i" == "30" ]] && fail "booking-service недоступен на ${BOOKING_SERVICE_HOST}:${BOOKING_SERVICE_PORT:-9090}"
+    sleep 1
+  done
+  pass "booking-service доступен"
+fi
+
 # 1. Получение всех бронирований
 curl -sSf "${BASE}/api/bookings" | grep -q 'test-user-2' && pass "Все бронирования получены" || fail "Бронирования не получены"
 
@@ -129,4 +155,39 @@ curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/bookings?userId=test
 curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/bookings?userId=test-user-2&hotelId=test-hotel-2" | grep -q '500' \
   && pass "Отклонено: отель полностью забронирован" \
   || fail "Ошибка: сервер принял бронирование в полностью занятом отеле"
+
+if [[ -n "${BOOKING_DB_HOST:-}" ]]; then
+  echo ""
+  echo "Тесты booking-service..."
+
+  count=$(psql_booking -tAc "select count(*) from booking where user_id in ('test-user-2', 'test-user-3')")
+  [[ "$count" == "2" ]] && pass "Две новые брони сохранены в базе booking-service" \
+    || fail "В базе booking-service $count броней вместо 2"
+
+  prices=$(psql_booking -tAc "select string_agg(user_id || '=' || price, ',' order by id) from booking")
+  [[ "$prices" == "test-user-3=80,test-user-2=90" ]] && pass "Цены совпадают с монолитом ($prices)" \
+    || fail "Цены не совпадают с монолитом: $prices"
+
+  total=$(curl -sSf "${BASE}/api/bookings" | grep -o '"userId"' | wc -l | tr -d ' ')
+  [[ "$total" == "2" ]] && pass "Список броней в монолите работает как раньше, по его базе" \
+    || fail "Список броней в монолите вернул $total броней вместо 2"
+fi
+
+if [[ -n "${HISTORY_DB_HOST:-}" ]]; then
+  echo ""
+  echo "Тесты booking-history-service..."
+
+  count=0
+  for i in $(seq 1 15); do
+    count=$(psql_history -tAc "select count(*) from booking_history where user_id in ('test-user-2', 'test-user-3')")
+    [[ "$count" -ge 2 ]] && break
+    sleep 1
+  done
+  [[ "$count" -ge 2 ]] && pass "События BookingCreated попали в историю ($count)" \
+    || fail "В истории $count записей вместо 2"
+
+  psql_history -tAc "select bookings from stats_by_hotel where hotel_id = 'test-hotel-1'" | grep -q '^2$' \
+    && pass "Статистика по отелям посчитана" || fail "Статистика по отелям не посчитана"
+fi
+
 echo "✅ Все HTTP-тесты пройдены!"
