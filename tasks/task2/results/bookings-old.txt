@@ -1,0 +1,10 @@
+Брони после прогона test/regress.sh
+
+== Старая система: база монолита (hotelio-db), таблица booking
+$ docker exec hotelio-db psql -U hotelio -d hotelio -c 'select * from booking order by id'
+ discount_percent | price |          created_at           | id |   hotel_id   | promo_code |   user_id   
+------------------+-------+-------------------------------+----+--------------+------------+-------------
+               10 |    90 | 2026-10-12 09:13:46.649931+00 |  3 | test-hotel-1 | TESTCODE1  | test-user-2
+                0 |    80 | 2026-10-12 09:13:46.649931+00 |  4 | test-hotel-1 |            | test-user-3
+(2 rows)
+

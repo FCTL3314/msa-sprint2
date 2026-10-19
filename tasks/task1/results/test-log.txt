@@ -1,0 +1,119 @@
+Проверка монолита Hotelio перед миграцией
+Дата: 08.10.2026 14:49
+Запуск: tasks/task1, docker compose up -d --build
+Правки окружения:
+- tasks/monolith/Dockerfile: FROM eclipse-temurin:17-jre, образа openjdk:17-jdk-slim больше нет на Docker Hub;
+- test/Dockerfile: FROM debian:bookworm-slim, пакеты bullseye-security для arm64 отдают 404.
+
+== docker ps (контейнеры Hotelio)
+NAMES              IMAGE            STATUS         PORTS
+hotelio-db         postgres:15      Up 3 minutes   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+hotelio-monolith   task1-monolith   Up 3 minutes   0.0.0.0:8084->8080/tcp, [::]:8084->8080/tcp
+
+== Лог старта монолита
+2026-10-08T11:46:00.851Z  INFO 1 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2026-10-08T11:46:00.862Z  INFO 1 --- [           main] c.hotelio.monolith.MonolithApplication   : Started MonolithApplication in 4.103 seconds (process running for 4.843)
+➡️  BookingService beans:
+    - bookingService: class com.hotelio.monolith.service.BookingService
+
+== Регрессионный тест test/regress.sh
+$ docker run --rm --network hotelio-net -e DB_HOST=hotelio-db -e DB_PORT=5432 -e DB_NAME=hotelio -e DB_USER=hotelio -e DB_PASSWORD=hotelio -e API_URL=http://hotelio-monolith:8080 hotelio-tester
+🏁 Регрессионный тест до миграции Hotelio
+🧪 Проверка подключения к БД...
+🧪 Загрузка фикстур...
+DELETE 4
+DELETE 3
+DELETE 12
+DELETE 3
+DELETE 5
+INSERT 0 4
+INSERT 0 3
+INSERT 0 12
+INSERT 0 3
+INSERT 0 2
+🧪 Выполнение HTTP-тестов...
+
+Тесты пользователей...
+✅ Получение test-user-1 по ID работает
+✅ Статус test-user-1: ACTIVE
+✅ test-user-1 в блэклисте
+✅ test-user-1 активен
+✅ test-user-1 не авторизован (в блэклисте)
+✅ test-user-3 — VIP-пользователь
+✅ test-user-2 авторизован
+
+Тесты отелей...
+✅ test-hotel-1 получен по ID
+✅ test-hotel-1 работает
+✅ test-hotel-3 не работает
+✅ test-hotel-2 полностью забронирован
+✅ Поиск отелей в Сеуле работает
+✅ Топ-отели в Сеуле загружены
+
+Тесты ревью...
+✅ Отзывы test-hotel-1 найдены
+✅ test-hotel-1 признан надёжным
+✅ test-hotel-3 НЕ признан надёжным (ожидаемо)
+
+Тесты промокодов...
+✅ Промокод TESTCODE1 найден
+✅ VIP-промо доступен VIP
+✅ VIP-промо недоступен обычному
+✅ Обычный промо доступен
+✅ Истекший промо недоступен
+✅ POST /validate промо прошёл
+
+Тесты бронирования...
+✅ Все бронирования получены
+✅ Бронирования test-user-2 найдены
+✅ Бронирование прошло (без промо)
+✅ Бронирование с промо прошло
+✅ Отклонено: неактивный пользователь
+✅ Отклонено: недоверенный отель
+✅ Отклонено: отель полностью забронирован
+✅ Все HTTP-тесты пройдены!
+[exit code 0]
+
+== Проверка API по модулям, на данных фикстур после прогона теста
+$ curl 'http://localhost:8084/api/users/test-user-2'
+{"id":"test-user-2","status":"ACTIVE","blacklisted":false,"active":true,"name":"Bob","email":"bob@test.com","city":"Busan"}
+[HTTP 200]
+$ curl 'http://localhost:8084/api/users/test-user-3/status'
+VIP
+[HTTP 200]
+$ curl 'http://localhost:8084/api/hotels/test-hotel-1'
+{"id":"test-hotel-1","operational":true,"fullyBooked":false,"city":"Seoul","rating":4.7,"description":"Modern hotel in Seoul downtown with spa and skybar."}
+[HTTP 200]
+$ curl 'http://localhost:8084/api/hotels/test-hotel-1/operational'
+true
+[HTTP 200]
+$ curl 'http://localhost:8084/api/hotels/top-rated?city=Seoul&limit=2'
+[{"id":"test-hotel-1","operational":true,"fullyBooked":false,"city":"Seoul","rating":4.7,"description":"Modern hotel in Seoul downtown with spa and skybar."}]
+[HTTP 200]
+$ curl 'http://localhost:8084/api/reviews/hotel/test-hotel-1/trusted'
+true
+[HTTP 200]
+$ curl 'http://localhost:8084/api/promos/TESTCODE1'
+{"code":"TESTCODE1","discount":10.0,"vipOnly":false,"expired":false,"validUntil":"2099-12-31","description":"Обычный промокод"}
+[HTTP 200]
+$ curl 'http://localhost:8084/api/bookings?userId=test-user-2'
+[{"id":6,"userId":"test-user-2","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":90.0,"createdAt":"2026-10-08T11:49:04.831801Z"},{"id":9,"userId":"test-user-2","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":90.0,"createdAt":null}]
+[HTTP 200]
+
+== Путь из README урока
+$ curl 'http://localhost:8084/bookings'
+[HTTP 404] контроллер слушает /api/bookings
+
+== Находки для ADR
+$ curl -X POST 'http://localhost:8084/api/bookings?userId=test-user-3&hotelId=test-hotel-1&promoCode=TESTCODE1'   # VIP и промокод на 10
+{"id":10,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":70.0,"createdAt":null}
+[HTTP 200]
+- цена 70: база VIP 80 минус 10 как сумма, а не 10%; в discountPercent записана сумма скидки;
+- createdAt: null, монолит не заполняет дату брони (у фикстур дата есть, её ставит SQL).
+$ curl 'http://localhost:8084/api/bookings'   # без userId
+[{"id":6,"userId":"test-user-2","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":90.0,"createdAt":"2026-10-08T11:49:04.831801Z"},{"id":7,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":null,"discountPercent":0.0,"price":80.0,"createdAt":"2026-10-08T11:49:04.831801Z"},{"id":8,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":null,"discountPercent":0.0,"price":80.0,"createdAt":null},{"id":9,"userId":"test-user-2","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":90.0,"createdAt":null},{"id":10,"userId":"test-user-3","hotelId":"test-hotel-1","promoCode":"TESTCODE1","discountPercent":10.0,"price":70.0,"createdAt":null}]
+[HTTP 200]
+- без userId отдаются брони всех пользователей.
+$ curl -X POST 'http://localhost:8084/api/bookings?userId=test-user-0&hotelId=test-hotel-1'   # неактивный пользователь
+[HTTP 500]
+- отказ бизнес-проверки отдаётся как ошибка сервера 500, а не как ошибка клиента 4xx.

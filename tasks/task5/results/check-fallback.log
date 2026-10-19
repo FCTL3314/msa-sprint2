@@ -1,0 +1,14 @@
+$ URL=http://localhost:19090 ./check-fallback.sh
+▶️ Testing fallback route...
+▶️ Гасим поды v1
+deployment.apps/booking-service-v1 scaled
+pod/booking-service-v1-c4797b647-6gbwb condition met
+NAME                                 READY   STATUS    RESTARTS   AGE
+booking-service-v2-f4c4d6956-wh4zw   2/2     Running   0          2m9s
+▶️ 20 запросов без v1: весь трафик должен уйти в v2, без ошибок
+  20 pong v2 [200]
+▶️ Возвращаем v1
+deployment.apps/booking-service-v1 scaled
+Waiting for deployment "booking-service-v1" rollout to finish: 0 of 1 updated replicas are available...
+deployment "booking-service-v1" successfully rolled out
+pong v2

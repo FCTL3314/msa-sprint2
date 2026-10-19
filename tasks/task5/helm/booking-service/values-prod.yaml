@@ -1,0 +1,11 @@
+replicaCount: 2
+
+ENABLE_FEATURE_X: "false"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

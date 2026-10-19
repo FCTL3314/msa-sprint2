@@ -1,0 +1,178 @@
+parsing and downloads finished in 112 ms.
+json schema validated in 123 ms
+build  starting shell (build)
+build  $ docker build -t "$IMAGE_NAME:$IMAGE_TAG" booking-service
+build  > #0 building with "desktop-linux" instance using docker driver
+build  > 
+build  > #1 [internal] load build definition from Dockerfile
+build  > #1 transferring dockerfile: 589B done
+build  > #1 DONE 0.0s
+build  > 
+build  > #2 [internal] load metadata for ghcr.io/astral-sh/uv:0.11
+build  > #2 ...
+build  > 
+build  > #3 [internal] load metadata for docker.io/library/python:3.12-slim
+build  > #3 DONE 1.2s
+build  > 
+build  > #2 [internal] load metadata for ghcr.io/astral-sh/uv:0.11
+build  > #2 DONE 1.3s
+build  > 
+build  > #4 [internal] load .dockerignore
+build  > #4 transferring context: 2B done
+build  > #4 DONE 0.0s
+build  > 
+build  > #5 [internal] load build context
+build  > #5 transferring context: 535B done
+build  > #5 DONE 0.0s
+build  > 
+build  > #6 [stage-0 1/8] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+build  > #6 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 0.0s done
+build  > #6 DONE 0.0s
+build  > 
+build  > #7 FROM ghcr.io/astral-sh/uv:0.11@sha256:77280f2f771df71f90786c314fe1bbc1e023feac652969bbf139c280babf2eb7
+build  > #7 resolve ghcr.io/astral-sh/uv:0.11@sha256:77280f2f771df71f90786c314fe1bbc1e023feac652969bbf139c280babf2eb7 0.0s done
+build  > #7 DONE 0.0s
+build  > 
+build  > #8 [stage-0 5/8] RUN uv sync --frozen --no-dev --no-install-project
+build  > #8 CACHED
+build  > 
+build  > #9 [stage-0 2/8] COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
+build  > #9 CACHED
+build  > 
+build  > #10 [stage-0 3/8] WORKDIR /app
+build  > #10 CACHED
+build  > 
+build  > #11 [stage-0 4/8] COPY pyproject.toml uv.lock ./
+build  > #11 CACHED
+build  > 
+build  > #12 [stage-0 7/8] RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. booking.proto
+build  > #12 CACHED
+build  > 
+build  > #13 [stage-0 6/8] COPY booking.proto ./
+build  > #13 CACHED
+build  > 
+build  > #14 [stage-0 8/8] COPY app ./app
+build  > #14 CACHED
+build  > 
+build  > #15 exporting to image
+build  > #15 exporting layers done
+build  > #15 exporting manifest sha256:574a2e387d4449d5dc23cc757bc8c773ccd9ac47c0c79af87c834835627973e1 done
+build  > #15 exporting config sha256:efedae1531c28e7886e5652d9abc9cb8ef9c0e5b39b8309de0f9c6f8912c4ff2 done
+build  > #15 exporting attestation manifest sha256:9847e4208a711068721ebb532c54442fbfdb3a987fac8e4851b7400bd0657907 0.0s done
+build  > #15 exporting manifest list sha256:3c346bd5b591a6e6ed57a05feeb591c1974ffa13a60aabef4de83f658c840964 done
+build  > #15 naming to docker.io/library/booking-service:d5fe6a24 done
+build  > #15 unpacking to docker.io/library/booking-service:d5fe6a24 done
+build  > #15 DONE 0.1s
+build  $ docker build -t "$HISTORY_IMAGE_NAME:$IMAGE_TAG" booking-history-service
+build  > #0 building with "desktop-linux" instance using docker driver
+build  > 
+build  > #1 [internal] load build definition from Dockerfile
+build  > #1 transferring dockerfile: 317B done
+build  > #1 DONE 0.0s
+build  > 
+build  > #2 [internal] load metadata for docker.io/library/python:3.12-slim
+build  > #2 DONE 0.3s
+build  > 
+build  > #3 [internal] load metadata for ghcr.io/astral-sh/uv:0.11
+build  > #3 DONE 0.3s
+build  > 
+build  > #4 [internal] load .dockerignore
+build  > #4 transferring context: 2B done
+build  > #4 DONE 0.0s
+build  > 
+build  > #5 [internal] load build context
+build  > #5 transferring context: 150B done
+build  > #5 DONE 0.0s
+build  > 
+build  > #6 [stage-0 1/6] FROM docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+build  > #6 resolve docker.io/library/python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1 0.0s done
+build  > #6 DONE 0.0s
+build  > 
+build  > #7 FROM ghcr.io/astral-sh/uv:0.11@sha256:77280f2f771df71f90786c314fe1bbc1e023feac652969bbf139c280babf2eb7
+build  > #7 resolve ghcr.io/astral-sh/uv:0.11@sha256:77280f2f771df71f90786c314fe1bbc1e023feac652969bbf139c280babf2eb7 0.0s done
+build  > #7 DONE 0.0s
+build  > 
+build  > #8 [stage-0 2/6] COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
+build  > #8 CACHED
+build  > 
+build  > #9 [stage-0 3/6] WORKDIR /app
+build  > #9 CACHED
+build  > 
+build  > #10 [stage-0 4/6] COPY pyproject.toml uv.lock ./
+build  > #10 CACHED
+build  > 
+build  > #11 [stage-0 5/6] RUN uv sync --frozen --no-install-project
+build  > #11 CACHED
+build  > 
+build  > #12 [stage-0 6/6] COPY app ./app
+build  > #12 CACHED
+build  > 
+build  > #13 exporting to image
+build  > #13 exporting layers done
+build  > #13 exporting manifest sha256:9490dcac340472a0ee2ceec056c758c1f0dff4bd01647a8c4a54535a6d88b1a9 done
+build  > #13 exporting config sha256:4f106ddb8d282df169baf4729fe0e233233609967caa205d4a959dc2e9f6aee4
+build  > #13 exporting config sha256:4f106ddb8d282df169baf4729fe0e233233609967caa205d4a959dc2e9f6aee4 done
+build  > #13 exporting attestation manifest sha256:af1cd6098a15667e3f6763eaa850a10322222cec407d365996392464247e10b8 0.0s done
+build  > #13 exporting manifest list sha256:99fefd7dbe52729d71ece69d9b14f8f6c0f4ed83ea33d5395bb44ed517268e51 done
+build  > #13 naming to docker.io/library/booking-history-service:d5fe6a24 done
+build  > #13 unpacking to docker.io/library/booking-history-service:d5fe6a24 0.0s done
+build  > #13 DONE 0.1s
+build  finished in 3.33 s
+unit   starting shell (unit)
+unit   $ cd booking-service
+unit   $ uv run pytest -v
+unit   > ============================= test session starts ==============================
+unit   > platform darwin -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0 -- /Users/nikita/Development/yandex-microservices-course/msa-sprint2/tasks/task4/booking-service/.venv/bin/python
+unit   > cachedir: .pytest_cache
+unit   > rootdir: /Users/nikita/Development/yandex-microservices-course/msa-sprint2/tasks/task4/booking-service
+unit   > configfile: pyproject.toml
+unit   > plugins: anyio-4.15.1
+unit   > collecting ... collected 11 items
+unit   > 
+unit   > tests/test_pricing.py::test_regular_user_without_promo_pays_base_price PASSED [  9%]
+unit   > tests/test_pricing.py::test_vip_user_has_lower_base_price PASSED         [ 18%]
+unit   > tests/test_pricing.py::test_status_is_case_insensitive PASSED            [ 27%]
+unit   > tests/test_pricing.py::test_unknown_user_status_gives_base_price PASSED  [ 36%]
+unit   > tests/test_pricing.py::test_promo_discount_is_subtracted_as_amount_like_in_monolith PASSED [ 45%]
+unit   > tests/test_pricing.py::test_user_checks_reject_booking[False-False-inactive] PASSED [ 54%]
+unit   > tests/test_pricing.py::test_user_checks_reject_booking[True-True-blacklisted] PASSED [ 63%]
+unit   > tests/test_pricing.py::test_hotel_checks_reject_booking[False-True-False-not operational] PASSED [ 72%]
+unit   > tests/test_pricing.py::test_hotel_checks_reject_booking[True-False-False-not trusted] PASSED [ 81%]
+unit   > tests/test_pricing.py::test_hotel_checks_reject_booking[True-True-True-fully booked] PASSED [ 90%]
+unit   > tests/test_pricing.py::test_valid_user_and_hotel_pass_checks PASSED      [100%]
+unit   > 
+unit   > ============================== 11 passed in 0.03s ==============================
+unit   finished in 589 ms
+test   starting shell (test)
+test   $ docker run -d --name booking-service-ci -p 18080:8080 "$IMAGE_NAME:$IMAGE_TAG"
+test   > a051902ce907067e09bde7506d6621fc76c49125c1703629e265c3beb1f539a9
+test   $ for i in $(seq 1 20); do curl -sf http://localhost:18080/ping >/dev/null && break; sleep 1; done
+test   $ curl -sf http://localhost:18080/ping | grep pong
+test   > pong
+test   $ curl -sf http://localhost:18080/ready | grep ready
+test   > ready
+test   Running after script...
+test   $ docker rm -f booking-service-ci
+test   > booking-service-ci
+test   finished in 2.67 s
+deploy starting shell (deploy)
+deploy $ minikube image load "$IMAGE_NAME:$IMAGE_TAG"
+deploy $ helm upgrade --install booking-service helm/booking-service -f "$VALUES_FILE" --set image.tag="$IMAGE_TAG" --wait --timeout 120s
+deploy > Release "booking-service" has been upgraded. Happy Helming!
+deploy > NAME: booking-service
+deploy > LAST DEPLOYED: Mon Oct 12 12:35:40 2026
+deploy > NAMESPACE: default
+deploy > STATUS: deployed
+deploy > REVISION: 7
+deploy > DESCRIPTION: Upgrade complete
+deploy > TEST SUITE: None
+deploy $ kubectl get pods -l app=booking-service
+deploy > NAME                              READY   STATUS        RESTARTS   AGE
+deploy > booking-service-6645d7b4d-czs8s   1/1     Terminating   0          104s
+deploy > booking-service-bcf995b48-br4sc   1/1     Running       0          7s
+deploy finished in 16 s
+
+ PASS  build 
+ PASS  unit  
+ PASS  test  
+ PASS  deploy

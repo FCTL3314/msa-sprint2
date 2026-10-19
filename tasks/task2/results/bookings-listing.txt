@@ -1,0 +1,62 @@
+Листинг броней после прогона test/regress.sh
+
+== REST монолита: список читает базу монолита, как раньше
+$ curl -s http://localhost:8084/api/bookings | jq
+[
+  {
+    "id": 3,
+    "userId": "test-user-2",
+    "hotelId": "test-hotel-1",
+    "promoCode": "TESTCODE1",
+    "discountPercent": 10.0,
+    "price": 90.0,
+    "createdAt": "2026-10-12T09:13:46.649931Z"
+  },
+  {
+    "id": 4,
+    "userId": "test-user-3",
+    "hotelId": "test-hotel-1",
+    "promoCode": null,
+    "discountPercent": 0.0,
+    "price": 80.0,
+    "createdAt": "2026-10-12T09:13:46.649931Z"
+  }
+]
+
+== gRPC booking-service: список из его базы
+$ grpcurl -plaintext -d '{}' localhost:9090 booking.BookingService/ListBookings
+{
+  "bookings": [
+    {
+      "id": "1",
+      "user_id": "test-user-3",
+      "hotel_id": "test-hotel-1",
+      "price": 80,
+      "created_at": "2026-10-12T09:13:47.061411Z"
+    },
+    {
+      "id": "2",
+      "user_id": "test-user-2",
+      "hotel_id": "test-hotel-1",
+      "promo_code": "TESTCODE1",
+      "discount_percent": 10,
+      "price": 90,
+      "created_at": "2026-10-12T09:13:47.114020Z"
+    }
+  ]
+}
+
+$ grpcurl -plaintext -d '{"user_id": "test-user-2"}' localhost:9090 booking.BookingService/ListBookings
+{
+  "bookings": [
+    {
+      "id": "2",
+      "user_id": "test-user-2",
+      "hotel_id": "test-hotel-1",
+      "promo_code": "TESTCODE1",
+      "discount_percent": 10,
+      "price": 90,
+      "created_at": "2026-10-12T09:13:47.114020Z"
+    }
+  ]
+}

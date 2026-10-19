@@ -1,0 +1,8 @@
+[project]
+name = "booking-history-service"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "confluent-kafka>=2.6",
+    "psycopg[binary]>=3.2",
+]

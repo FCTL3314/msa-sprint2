@@ -1,0 +1,35 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: booking-service
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - booking-gateway
+  http:
+    - name: feature-flag
+      match:
+        - headers:
+            x-booking-version:
+              exact: v2
+      route:
+        - destination:
+            host: booking-service
+            subset: v2
+
+    - name: canary
+      route:
+        # без subset: v1 в приоритете (failoverPriority), если v1 недоступен - идёт в v2
+        - destination:
+            host: booking-service
+          weight: 90
+        - destination:
+            host: booking-service
+            subset: v2
+          weight: 10
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: 5xx,connect-failure,refused-stream,reset
+      timeout: 10s
